@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    Official releases add a private brand package in ../../Brand/windows (not in this repository;
-    see BRAND.md). Without it, the app builds with a neutral look and the name "AI-ML Refresher".
+    Official releases are built with a private brand kit cloned next to this repository, at
+    ../brand-kit (not public; see BRAND.md). Without it, the app builds with a neutral look and the name "AI-ML Refresher".
   -->
   <PropertyGroup>
-    <BrandProject>$(MSBuildThisFileDirectory)../../Brand/windows/Brand.Windows.csproj</BrandProject>
+    <BrandDir>$(MSBuildThisFileDirectory)../../../brand-kit/products/ai-ml-refresher/windows/</BrandDir>
+    <BrandProject>$(BrandDir)Brand.Windows.csproj</BrandProject>
     <HasBrand Condition="Exists('$(BrandProject)')">true</HasBrand>
     <!-- Windows builds get native toast notifications; elsewhere (previewing on a Mac) they're off. -->
     <IsWindowsBuild Condition="$([MSBuild]::IsOSPlatform('Windows')) Or $(RuntimeIdentifier.StartsWith('win'))">true</IsWindowsBuild>
@@ -25,7 +26,7 @@
 
   <PropertyGroup Condition="'$(HasBrand)' == 'true'">
     <DefineConstants>$(DefineConstants);PRIVATE_BRAND</DefineConstants>
-    <ApplicationIcon>$(MSBuildThisFileDirectory)../../Brand/windows/AppIcon.ico</ApplicationIcon>
+    <ApplicationIcon>$(BrandDir)AppIcon.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup Condition="'$(IsWindowsBuild)' == 'true'">
     <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>

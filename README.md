@@ -41,7 +41,7 @@ Fields (LLMs & NLP, Agents, Vision, Video & 3D, Audio & Speech, Robotics, Reinfo
 
 ### Install from the disk image
 
-Open the `.dmg` from `dist/` (or a release) and drag the app onto **Applications**.
+Download the `.dmg` from the [latest release](https://github.com/MMFreitas1/AI-ML-refresher/releases/latest) (or build it, below), open it and drag the app onto **Applications**.
 
 The app is signed with a development certificate, not notarized by Apple. On another Mac, macOS will block the first launch. To allow it, go to **System Settings → Privacy & Security** and click **Open Anyway**. You only need to do this once. Notarizing removes this step, but it requires the paid Apple Developer Program.
 
@@ -80,7 +80,7 @@ The Windows app (`windows/`, C# and [Avalonia](https://avaloniaui.net)) uses the
 
 ### Install
 
-Download the `.exe` from a release, or build it (see below), and run it. It's a single self-contained file, so you don't need to install .NET. It isn't code-signed, so the first time you run it, Windows SmartScreen may say "Windows protected your PC". Click **More info → Run anyway**. *Settings → Start with Windows* is on by default.
+Download the `.exe` from the [latest release](https://github.com/MMFreitas1/AI-ML-refresher/releases/latest), or build it (see below), and run it. It's a single self-contained file, so you don't need to install .NET. It isn't code-signed, so the first time you run it, Windows SmartScreen may say "Windows protected your PC". Click **More info → Run anyway**. *Settings → Start with Windows* is on by default.
 
 Data lives in `%APPDATA%\Refresher` (*Settings → Open Folder*). The `briefs/` and `collection.json` files use the same format as the Mac app's, so you can copy them between the two.
 
@@ -98,9 +98,15 @@ dotnet run --project Refresher.App            # run the app (also works on a Mac
 
 On Windows without Git Bash, run the publish command from `scripts/make-exe.sh` directly, or open `windows/Refresher.sln` in Visual Studio or Rider. Notifications and *Start with Windows* only work in Windows builds. A preview run on a Mac stores its data in `~/Library/Application Support/Refresher (Windows preview)`.
 
+## Releases
+
+`./scripts/release.sh` builds the `.dmg` and the `.exe` on a Mac and attaches both to a draft GitHub release, tagged with the version in `project.yml` (keep `windows/Directory.Build.props` the same). Review the draft on GitHub, then publish it.
+
+Official releases are built with a private brand kit cloned next to this repository (`../brand-kit`), which adds their name, icon and launch animation. Without it, every script builds the neutral app.
+
 ## License
 
-The code is MIT licensed (`LICENSE`). Builds from this repository are unbranded and named "AI-ML Refresher". Official releases (macOS and Windows) add their own name, icon and launch animation from a private package that isn't part of this repository. Those are not licensed for reuse; see `BRAND.md`.
+The code is MIT licensed (`LICENSE`). Builds from this repository are unbranded and named "AI-ML Refresher". Official releases (macOS and Windows) add their own name, icon and launch animation from a private brand kit that isn't part of this repository. Those are not licensed for reuse; see `BRAND.md`.
 
 ## Data
 
@@ -134,4 +140,5 @@ windows/             Windows app (.NET 10 + Avalonia)
   Refresher.Cli/     command-line fetch/show
   Refresher.Core.Tests/
 scripts/make-exe.sh  single-file Windows .exe in dist/
+scripts/release.sh   .dmg + .exe as a draft GitHub release
 ```
