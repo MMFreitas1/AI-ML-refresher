@@ -1,0 +1,73 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:app="using:Refresher.App"
+        x:Class="Refresher.App.Views.SettingsWindow"
+        x:DataType="app:BriefModel"
+        Width="480" SizeToContent="Height" CanResize="False"
+        WindowStartupLocation="CenterOwner">
+  <Window.Styles>
+    <Style Selector="Border.section">
+      <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseLowBrush}" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="14,10" />
+      <Setter Property="Margin" Value="0,0,0,14" />
+    </Style>
+    <Style Selector="TextBlock.sectionTitle">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Margin" Value="2,0,0,6" />
+    </Style>
+  </Window.Styles>
+
+  <StackPanel Margin="18">
+    <Border Classes="section">
+      <StackPanel Spacing="4">
+        <CheckBox x:Name="StartWithWindows" Content="Start with Windows" IsCheckedChanged="OnStartWithWindows" />
+        <TextBlock x:Name="StartHelp" Classes="caption secondary" TextWrapping="Wrap" />
+        <TextBlock x:Name="StartError" Classes="caption" Foreground="Red" TextWrapping="Wrap" IsVisible="False" />
+      </StackPanel>
+    </Border>
+
+    <StackPanel x:Name="AppearanceSection">
+      <TextBlock Classes="sectionTitle" Text="Appearance" />
+      <Border Classes="section">
+        <CheckBox x:Name="PlayIntro" Content="Play intro animation at launch" IsCheckedChanged="OnPlayIntro" />
+      </Border>
+    </StackPanel>
+
+    <TextBlock Classes="sectionTitle" Text="Notifications" />
+    <Border Classes="section">
+      <StackPanel Spacing="8">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="When the daily brief is ready" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Content="{Binding Notifier.ActionLabel}" Click="OnToggleNotifications"
+                  IsVisible="{Binding Notifier.IsAvailable}" />
+          <TextBlock Grid.Column="1" Classes="secondary" Text="Only in the Windows build"
+                     IsVisible="{Binding !Notifier.IsAvailable}" />
+        </Grid>
+        <Button Content="Send Test Notification" Click="OnTestNotification" IsVisible="{Binding Notifier.IsOn}" />
+      </StackPanel>
+    </Border>
+
+    <TextBlock Classes="sectionTitle" Text="Schedule" />
+    <Border Classes="section">
+      <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,6,Auto">
+        <TextBlock Text="New brief" />
+        <TextBlock Grid.Column="1" Classes="secondary" x:Name="ScheduleText" />
+        <TextBlock Grid.Row="2" Text="Next check" />
+        <TextBlock Grid.Row="2" Grid.Column="1" Classes="secondary" x:Name="NextText" />
+      </Grid>
+    </Border>
+
+    <TextBlock Classes="sectionTitle" Text="Data" />
+    <Border Classes="section" Margin="0">
+      <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,6,Auto,6,Auto">
+        <TextBlock Text="Folder" VerticalAlignment="Center" />
+        <Button Grid.Column="1" Content="Open Folder" Click="OnOpenFolder" />
+        <TextBlock Grid.Row="2" Text="Saved items" />
+        <TextBlock Grid.Row="2" Grid.Column="1" Classes="secondary" Text="{Binding CollectionCount}" />
+        <TextBlock Grid.Row="4" Text="Days of history" />
+        <TextBlock Grid.Row="4" Grid.Column="1" Classes="secondary" Text="{Binding Days.Count}" />
+      </Grid>
+    </Border>
+  </StackPanel>
+</Window>

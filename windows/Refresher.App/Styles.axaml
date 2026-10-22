@@ -1,0 +1,108 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Styles.Resources>
+    <!-- Line icons on a 24×24 grid, drawn with the "icon" Path style below. -->
+    <StreamGeometry x:Key="IconChevronLeft">M15 5 L8 12 L15 19</StreamGeometry>
+    <StreamGeometry x:Key="IconChevronRight">M9 5 L16 12 L9 19</StreamGeometry>
+    <StreamGeometry x:Key="IconBookmark">M6.5 3.5 H17.5 V20.5 L12 16.5 L6.5 20.5 Z</StreamGeometry>
+    <StreamGeometry x:Key="IconRefresh">M19.5 12 A7.5 7.5 0 1 1 17.3 6.7 M19.5 3.5 V8 H15</StreamGeometry>
+    <StreamGeometry x:Key="IconSettings">M4 7 H14 M18 7 H20 M4 17 H6 M10 17 H20 M16 5 V9 M8 15 V19</StreamGeometry>
+    <StreamGeometry x:Key="IconWarning">M12 3.5 L21.5 20 H2.5 Z M12 9.5 V14 M12 16.8 V17.2</StreamGeometry>
+    <StreamGeometry x:Key="IconBell">M6 16.5 V11 A6 6 0 0 1 18 11 V16.5 L19.5 18 H4.5 Z M10 20.5 H14</StreamGeometry>
+    <StreamGeometry x:Key="IconBellOff">M6 16.5 V11 A6 6 0 0 1 18 11 V16.5 L19.5 18 H4.5 Z M10 20.5 H14 M3.5 3.5 L20.5 20.5</StreamGeometry>
+    <StreamGeometry x:Key="IconCircle">M12 3.5 A8.5 8.5 0 1 1 11.99 3.5 Z</StreamGeometry>
+    <StreamGeometry x:Key="IconCheckCircle">M12 3.5 A8.5 8.5 0 1 1 11.99 3.5 Z M8 12.3 L10.8 15 L16 9.5</StreamGeometry>
+    <StreamGeometry x:Key="IconTray">M4 13 L6.5 5 H17.5 L20 13 V19 H4 Z M4 13 H9 L10 15 H14 L15 13 H20</StreamGeometry>
+  </Styles.Resources>
+
+  <Style Selector="Path.icon">
+    <Setter Property="Width" Value="16" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="Stretch" Value="Uniform" />
+    <Setter Property="Stroke" Value="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+    <Setter Property="StrokeThickness" Value="1.7" />
+    <Setter Property="StrokeLineCap" Value="Round" />
+    <Setter Property="StrokeJoin" Value="Round" />
+  </Style>
+  <Style Selector="Path.icon.filled">
+    <Setter Property="Fill" Value="{DynamicResource SystemControlHighlightAccentBrush}" />
+    <Setter Property="Stroke" Value="{DynamicResource SystemControlHighlightAccentBrush}" />
+  </Style>
+
+  <!-- Toolbar buttons: borderless, like macOS .borderless. -->
+  <Style Selector="Button.tool">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="6" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.tool:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.tool:disabled Path.icon">
+    <Setter Property="Opacity" Value="0.35" />
+  </Style>
+
+  <!-- Compact All / Unread / Read switch. -->
+  <Style Selector="TabStrip.compact TabStripItem">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Padding" Value="8,2" />
+  </Style>
+
+  <Style Selector="TextBlock.secondary">
+    <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+  </Style>
+  <Style Selector="TextBlock.tertiary">
+    <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+  </Style>
+  <Style Selector="TextBlock.headline">
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.caption">
+    <Setter Property="FontSize" Value="11.5" />
+  </Style>
+
+  <Style Selector="TextBlock.rank">
+    <Setter Property="FontSize" Value="17" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource SystemControlHighlightAccentBrush}" />
+  </Style>
+  <Style Selector="TextBlock.rank.dim">
+    <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+  </Style>
+  <Style Selector="TextBlock.title">
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.title.read">
+    <Setter Property="FontWeight" Value="Normal" />
+  </Style>
+
+  <Style Selector="Border.chip">
+    <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseLowBrush}" />
+    <Setter Property="CornerRadius" Value="9" />
+    <Setter Property="Padding" Value="7,1" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+  </Style>
+  <Style Selector="Border.chip.accent">
+    <Setter Property="Background">
+      <SolidColorBrush Color="{DynamicResource SystemAccentColor}" Opacity="0.18" />
+    </Setter>
+  </Style>
+  <Style Selector="Border.chip TextBlock">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="Medium" />
+  </Style>
+
+  <!-- Rows don't look selected in the day list (it's not a selection list). -->
+  <Style Selector="ListBox.plain ListBoxItem">
+    <Setter Property="Padding" Value="10,6" />
+  </Style>
+  <Style Selector="ListBox.plain ListBoxItem:selected /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBox.plain ListBoxItem:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundListLowBrush}" />
+  </Style>
+</Styles>

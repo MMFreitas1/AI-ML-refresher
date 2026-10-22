@@ -10,3 +10,9 @@ dist/
 Brand/
 # Generated at build time from the brand (or the neutral icon)
 App/Assets.xcassets/AppIcon.appiconset/
+
+# .NET build output (windows/)
+bin/
+obj/
+*.user
+.vs/

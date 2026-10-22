@@ -1,0 +1,205 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:app="using:Refresher.App"
+        x:Class="Refresher.App.Views.MainWindow"
+        x:DataType="app:BriefModel"
+        Width="1100" Height="700" MinWidth="860" MinHeight="520"
+        WindowStartupLocation="CenterScreen">
+  <Panel Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
+    <Grid ColumnDefinitions="56*,Auto,44*">
+      <!-- Left: the day's items -->
+      <DockPanel Grid.Column="0" MinWidth="420">
+        <Border DockPanel.Dock="Top" Padding="10,8,10,8" BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+          <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto,Auto">
+            <Button Grid.Column="0" Classes="tool" Click="OnOlder" IsEnabled="{Binding CanStepOlder}" ToolTip.Tip="Previous day">
+              <Path Classes="icon" Data="{StaticResource IconChevronLeft}" />
+            </Button>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="4,0">
+              <TextBlock Classes="headline" Text="{Binding DayTitle}" />
+              <TextBlock Classes="caption secondary" Text="{Binding DaySubtitle}" IsVisible="{Binding Brief, Converter={x:Static ObjectConverters.IsNotNull}}" />
+            </StackPanel>
+            <Button Grid.Column="2" Classes="tool" Click="OnNewer" IsEnabled="{Binding CanStepNewer}" ToolTip.Tip="Next day">
+              <Path Classes="icon" Data="{StaticResource IconChevronRight}" />
+            </Button>
+            <Panel Grid.Column="4" Margin="4,0" IsVisible="{Binding HasErrors}" Background="Transparent"
+                   ToolTip.Tip="{Binding ErrorsTip}" VerticalAlignment="Center">
+              <Path Classes="icon" Stroke="Orange" Data="{StaticResource IconWarning}" />
+            </Panel>
+            <Button Grid.Column="5" Classes="tool" Click="OnBell" IsVisible="{Binding Notifier.IsAvailable}" ToolTip.Tip="{Binding Notifier.Tip}">
+              <Panel>
+                <Path Classes="icon" Data="{StaticResource IconBell}" IsVisible="{Binding Notifier.IsOn}" />
+                <Path Classes="icon" Data="{StaticResource IconBellOff}" IsVisible="{Binding !Notifier.IsOn}" />
+              </Panel>
+            </Button>
+            <Button Grid.Column="6" Classes="tool" Click="OnSettings" ToolTip.Tip="Settings">
+              <Path Classes="icon" Data="{StaticResource IconSettings}" />
+            </Button>
+            <Panel Grid.Column="7" Width="30">
+              <ProgressBar IsIndeterminate="True" Width="22" MinWidth="0" IsVisible="{Binding IsRefreshing}" VerticalAlignment="Center" />
+              <Button Classes="tool" Click="OnRefresh" IsVisible="{Binding !IsRefreshing}" ToolTip.Tip="Rebuild today's brief now">
+                <Path Classes="icon" Data="{StaticResource IconRefresh}" />
+              </Button>
+            </Panel>
+          </Grid>
+        </Border>
+
+        <Panel>
+          <ListBox x:Name="DayList" Classes="plain" ItemsSource="{Binding Rows}" IsVisible="{Binding HasItems}"
+                   Background="Transparent">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="app:BriefRow">
+                <Grid ColumnDefinitions="28,*,Auto" Background="Transparent"
+                      PointerPressed="OnRowPressed" PointerMoved="OnRowMoved" DoubleTapped="OnRowDoubleTapped">
+                  <Grid.ContextMenu>
+                    <ContextMenu>
+                      <MenuItem Header="Open Link" Click="OnOpenLink" />
+                      <MenuItem Header="Open Discussion" Click="OnOpenDiscussion" IsVisible="{Binding HasDiscussion}" />
+                      <MenuItem Header="Copy Link" Click="OnCopyLink" />
+                      <MenuItem Header="Save to Collection" Click="OnSaveRow" IsVisible="{Binding !IsSaved}" />
+                    </ContextMenu>
+                  </Grid.ContextMenu>
+                  <TextBlock Grid.Column="0" Text="{Binding Rank}" Classes="rank" Classes.dim="{Binding !IsTop5}"
+                             HorizontalAlignment="Right" Margin="0,0,10,0" />
+                  <StackPanel Grid.Column="1" Spacing="3">
+                    <Border Classes="chip"><TextBlock Text="{Binding FieldLabel}" /></Border>
+                    <TextBlock Text="{Binding Item.Title}" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Classes="secondary" Text="{Binding Item.Summary}" IsVisible="{Binding HasSummary}"
+                               TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" FontSize="13" />
+                    <TextBlock Classes="caption tertiary" Text="{Binding Meta}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                  <Button Grid.Column="2" Classes="tool" VerticalAlignment="Top" Click="OnSaveRow"
+                          IsEnabled="{Binding !IsSaved}" ToolTip.Tip="{Binding SaveTip}" ToolTip.ShowOnDisabled="True">
+                    <Path Classes="icon" Classes.filled="{Binding IsSaved}" Data="{StaticResource IconBookmark}" />
+                  </Button>
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+          <StackPanel IsVisible="{Binding !HasItems}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" MaxWidth="340">
+            <TextBlock Classes="headline" Text="{Binding EmptyTitle}" HorizontalAlignment="Center" />
+            <TextBlock Classes="secondary" Text="{Binding EmptyMessage}" TextWrapping="Wrap" TextAlignment="Center" />
+            <Button Content="Fetch now" HorizontalAlignment="Center" Click="OnRefresh" IsEnabled="{Binding !IsRefreshing}" />
+          </StackPanel>
+        </Panel>
+      </DockPanel>
+
+      <GridSplitter Grid.Column="1" Width="1" ResizeDirection="Columns" Background="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+
+      <!-- Right: the collection (drop target) -->
+      <Panel Grid.Column="2" MinWidth="360" x:Name="CollectionPane" DragDrop.AllowDrop="True" Background="Transparent">
+        <DockPanel>
+          <Border DockPanel.Dock="Top" Padding="14,10" BorderThickness="0,0,0,1"
+                  BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+            <StackPanel Spacing="8">
+              <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                <TextBlock Classes="headline" Text="Collection" VerticalAlignment="Center" />
+                <Border Grid.Column="1" Classes="chip" Margin="8,0,0,0" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding CollectionCount}" />
+                </Border>
+                <TabStrip Grid.Column="3" Classes="compact" SelectedIndex="{Binding ReadFilter}" VerticalAlignment="Center">
+                  <TabStripItem Content="All" />
+                  <TabStripItem Content="Unread" />
+                  <TabStripItem Content="Read" />
+                </TabStrip>
+              </Grid>
+              <Grid ColumnDefinitions="*,8,Auto">
+                <TextBox PlaceholderText="Search title, notes, tags" Text="{Binding Search}" />
+                <ComboBox Grid.Column="2" ItemsSource="{Binding TagChoices}" SelectedItem="{Binding TagFilter}" MinWidth="110" />
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <Panel>
+            <StackPanel IsVisible="{Binding CollectionIsEmpty}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" MaxWidth="320">
+              <Path Classes="icon" Width="34" Height="34" HorizontalAlignment="Center" Data="{StaticResource IconTray}" />
+              <TextBlock Classes="headline" Text="Drag items here" HorizontalAlignment="Center" />
+              <TextBlock Classes="secondary" TextWrapping="Wrap" TextAlignment="Center"
+                         Text="Your collection is kept across days, with tags, notes and read state." />
+            </StackPanel>
+
+            <Grid RowDefinitions="*,Auto,Auto" IsVisible="{Binding !CollectionIsEmpty}">
+              <ListBox x:Name="SavedList" ItemsSource="{Binding FilteredCollection}" SelectedItem="{Binding Selected}"
+                       Background="Transparent" MinHeight="180" KeyDown="OnSavedKeyDown">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="app:SavedRow">
+                    <Grid ColumnDefinitions="Auto,*" Background="Transparent" DoubleTapped="OnSavedDoubleTapped">
+                      <Grid.ContextMenu>
+                        <ContextMenu>
+                          <MenuItem Header="Mark as Read" Click="OnToggleRead" IsVisible="{Binding !IsRead}" />
+                          <MenuItem Header="Mark as Unread" Click="OnToggleRead" IsVisible="{Binding IsRead}" />
+                          <MenuItem Header="Open Link" Click="OnOpenLink" />
+                          <MenuItem Header="Open Discussion" Click="OnOpenDiscussion" IsVisible="{Binding Saved.Item.DiscussionURL, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                          <MenuItem Header="Copy Link" Click="OnCopyLink" />
+                          <Separator />
+                          <MenuItem Header="Remove from Collection" Click="OnRemove" />
+                        </ContextMenu>
+                      </Grid.ContextMenu>
+                      <Button Classes="tool" VerticalAlignment="Top" Margin="-4,-2,6,0" Click="OnToggleRead" ToolTip.Tip="{Binding ReadTip}">
+                        <Panel>
+                          <Path Classes="icon" Data="{StaticResource IconCircle}" IsVisible="{Binding !IsRead}" Opacity="0.6" />
+                          <Path Classes="icon" Stroke="SeaGreen" Data="{StaticResource IconCheckCircle}" IsVisible="{Binding IsRead}" />
+                        </Panel>
+                      </Button>
+                      <StackPanel Grid.Column="1" Spacing="3">
+                        <TextBlock Text="{Binding Title}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
+                                   Classes="title" Classes.read="{Binding IsRead}" />
+                        <TextBlock Classes="caption secondary" Text="{Binding Meta}" TextTrimming="CharacterEllipsis" />
+                        <ItemsControl ItemsSource="{Binding Tags}" IsVisible="{Binding HasTags}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                              <Border Classes="chip accent" Margin="0,0,4,2"><TextBlock Text="{Binding}" /></Border>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Classes="caption secondary" FontStyle="Italic" Text="{Binding Note}" IsVisible="{Binding HasNote}"
+                                   TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+
+              <GridSplitter Grid.Row="1" Height="1" ResizeDirection="Rows" IsVisible="{Binding HasSelection}"
+                            Background="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+
+              <!-- Editor for the selected item -->
+              <DockPanel Grid.Row="2" Height="200" MinHeight="150" Margin="12" IsVisible="{Binding HasSelection}">
+                <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,8">
+                  <TextBlock Classes="headline" Text="{Binding Selected.Title, FallbackValue=''}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                  <Button Grid.Column="1" Content="Open" Margin="8,0,0,0" Click="OnOpenSelected" />
+                  <Button Grid.Column="2" Content="Discussion" Margin="6,0,0,0" Click="OnOpenSelectedDiscussion"
+                          IsVisible="{Binding Selected.Saved.Item.DiscussionURL, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}" />
+                </Grid>
+                <TextBox DockPanel.Dock="Top" Margin="0,0,0,8" Text="{Binding TagsText}" x:Name="TagsBox"
+                         PlaceholderText="Tags, comma separated (e.g. rl, to-try, paper)" KeyDown="OnTagsKeyDown" LostFocus="OnTagsLostFocus" />
+                <TextBox Text="{Binding Note}" AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top"
+                         PlaceholderText="Notes: why it matters, what to try…" />
+              </DockPanel>
+            </Grid>
+          </Panel>
+        </DockPanel>
+
+        <Rectangle x:Name="DropHighlight" IsVisible="False" IsHitTestVisible="False" Margin="4" RadiusX="10" RadiusY="10"
+                   StrokeThickness="3" StrokeDashArray="3,2" Stroke="{DynamicResource SystemControlHighlightAccentBrush}">
+          <Rectangle.Fill>
+            <SolidColorBrush Color="{DynamicResource SystemAccentColor}" Opacity="0.07" />
+          </Rectangle.Fill>
+        </Rectangle>
+      </Panel>
+    </Grid>
+
+    <!-- The brand intro, fading into the panes. Empty in neutral builds. -->
+    <ContentControl x:Name="IntroHost" IsVisible="False">
+      <ContentControl.Transitions>
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.42" Easing="0.22,1,0.36,1" />
+        </Transitions>
+      </ContentControl.Transitions>
+    </ContentControl>
+  </Panel>
+</Window>
