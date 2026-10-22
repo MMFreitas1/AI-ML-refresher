@@ -1,4 +1,5 @@
 import BriefCore
+import BriefUI
 import SwiftUI
 
 struct MainView: View {
@@ -65,6 +66,8 @@ struct DayPane: View {
                     .foregroundStyle(.orange)
                     .help("Some sources failed:\n" + errors.joined(separator: "\n"))
             }
+            NotificationBell()
+            SettingsLink { Image(systemName: "gearshape") }.help("Settings")
             if model.isRefreshing {
                 ProgressView().controlSize(.small)
             } else {
@@ -119,6 +122,34 @@ struct BriefRow: View {
         .contentShape(Rectangle())
         .onTapGesture(count: 2) { openURL(item.url) }
         .contextMenu { ItemLinksMenu(item: item, onSave: isSaved ? nil : { model.save(item) }) }
+    }
+}
+
+/// Turns the daily "new brief" notification on or off.
+struct NotificationBell: View {
+    @Environment(BriefModel.self) private var model
+
+    var body: some View {
+        let notifier = model.notifier
+        switch notifier.state {
+        case .unavailable:
+            EmptyView()
+        case let state:
+            Button { Task { await notifier.toggle() } } label: {
+                Image(systemName: state == .on ? "bell.fill" : "bell.slash")
+                    .foregroundStyle(state == .deniedInSystemSettings ? Color.orange : Color.primary)
+            }
+            .help(help(state))
+        }
+    }
+
+    private func help(_ state: Notifier.State) -> String {
+        switch state {
+        case .on: "Notifying you when the daily brief is ready. Click to turn off."
+        case .off: "Get a notification when the daily brief is ready."
+        case .deniedInSystemSettings: "Notifications are blocked for \(AppBrand.displayName). Click to open System Settings."
+        case .unavailable: ""
+        }
     }
 }
 
@@ -336,7 +367,7 @@ struct ItemLinksMenu: View {
 
 /// Items are dragged as JSON text so the drop side gets the full item, from any day.
 enum DragPayload {
-    static let prefix = "aibrief-item:"
+    static let prefix = "refresher-item:"
 
     static func encode(_ item: BriefItem) -> String {
         let data = (try? JSONEncoder().encode(item)) ?? Data()

@@ -1,4 +1,4 @@
-# AI Brief
+# AI-ML Refresher
 
 A macOS widget and companion app for a 15-minute daily reading habit in AI & ML.
 
@@ -6,7 +6,8 @@ Every day after **12:00 local time** it collects what's popular or trending acro
 
 - **Widget** (medium or large): today's top 5. Click an item to open it, click the bookmark to save it, click **Expand** to open the app.
 - **App window**: today's items on the left and your **collection** on the right. Drag items across to save them. Saved items keep tags, notes and read/unread state forever. The ‹ › arrows browse past days.
-- **Menu bar**: the top 5, *Refresh Now*, and *Open AI Brief*. The app is a background app with no Dock icon, so the noon refresh runs even with the window closed.
+- **Background helper**: a small invisible helper inside the app builds the brief after 12:00 and keeps the widget current, even with the app closed. The app itself behaves like any Mac app: it bounces in the Dock when launched and quits when you close its window.
+- **Notifications** (optional, bell button): "Most recent AI & ML trends for you" every day at 12:05.
 
 No AI summaries and no API keys. The same inputs always produce the same list.
 
@@ -38,29 +39,40 @@ Fields (LLMs & NLP, Agents, Vision, Video & 3D, Audio & Speech, Robotics, Reinfo
 
 ## Build & run
 
-### Install (app + widget)
+### Install from the disk image
+
+Open the `.dmg` from `dist/` (or a release) and drag the app onto **Applications**.
+
+The app is signed with a development certificate, not notarized by Apple. On another Mac, macOS will block the first launch. To allow it, go to **System Settings → Privacy & Security** and click **Open Anyway**. You only need to do this once. Notarizing removes this step, but it requires the paid Apple Developer Program.
+
+### Build & install (app + widget)
 
 Requires Xcode and macOS 15 or later. Xcode doesn't need to be open.
 
 ```bash
 ./scripts/install.sh     # generates the project, builds a signed Release, installs to /Applications
+./scripts/make-dmg.sh    # same build, packaged as a .dmg in dist/ (drag to Applications)
 ```
 
-1. Add the widget: right-click the desktop → **Edit Widgets** → search "AI Brief" → pick medium or large.
-2. Open the app from the menu bar icon (✨) → **Settings…** and turn on **Open at login**.
+1. Add the widget: right-click the desktop → **Edit Widgets** → search for the app's name → pick medium or large.
+2. The background helper is enabled automatically (*Settings → Refresh in the background*). If macOS asks, allow it under System Settings → General → Login Items.
 
-The app runs in the background with no Dock icon and no window at launch. Its window opens from the widget's **Expand** button or from the menu bar icon. Run the script again after any code change.
+Open the app from Applications, Spotlight, the widget's **Expand** button or a notification. Run the script again after any code change.
 
-The signing team is set in `project.yml` (`DEVELOPMENT_TEAM`). The Xcode project is generated from that file and is git-ignored, so make target or entitlement changes there. To work in Xcode, run `./scripts/make-xcode-project.sh` and open `AIBrief.xcodeproj`.
+The signing team is set in `project.yml` (`DEVELOPMENT_TEAM`). The Xcode project is generated from that file and is git-ignored, so make target or entitlement changes there. To work in Xcode, run `./scripts/make-xcode-project.sh` and open `Refresher.xcodeproj`.
 
 ### Without Xcode (app window only, no widget)
 
 ```bash
-swift run AIBrief          # the two-pane app + menu bar
+swift run Refresher        # the two-pane app (no widget, helper or notifications)
 swift run brief-cli fetch  # build today's brief now and print it
 swift run brief-cli show   # print the latest saved brief
 swift test                 # unit tests (needs Xcode's toolchain)
 ```
+
+## License
+
+The code is MIT licensed (`LICENSE`). Builds from this repository are unbranded and named "AI-ML Refresher". Official releases add their own name, icon and launch animation from a private package that isn't part of this repository. Those are not licensed for reuse; see `BRAND.md`.
 
 ## Data
 
@@ -72,7 +84,7 @@ Data is plain JSON:
 Where the files live depends on how the app was built:
 
 - **Xcode build**: the shared App Group container, which the app and widget both use. *Settings → Show in Finder* opens it.
-- **`swift run`**: `~/Library/Application Support/AIBrief/`. This is separate from the Xcode build's data.
+- **`swift run`**: `~/Library/Application Support/Refresher/`. This is separate from the Xcode build's data.
 
 Optional: set `GITHUB_TOKEN` in the environment to raise GitHub's API rate limit. It isn't needed for one fetch a day.
 
@@ -80,7 +92,10 @@ Optional: set `GITHUB_TOKEN` in the environment to raise GitHub's API rate limit
 
 ```
 Sources/BriefCore/   fetching, parsing, ranking, storage (shared by app, widget, CLI)
-Sources/BriefApp/    SwiftUI app: two-pane window, menu bar, settings
+Sources/BriefApp/    SwiftUI app: two-pane window, settings, notifications
+Sources/BriefUI/     views shared by app and widget; AppBrand (neutral look unless built with the private brand)
+Sources/app-assets/  renders the app icon at build time, plus previews
+Agent/               background helper (login item): daily refresh + widget reload
 Sources/brief-cli/   command-line fetch/show
 Widget/              WidgetKit extension (built by Xcode only)
 Tests/               ranking, categorization, parsers, schedule, store

@@ -9,6 +9,7 @@ import WidgetKit
 @MainActor @Observable
 final class BriefModel {
     let store = BriefStore()
+    let notifier = Notifier()
 
     private(set) var days: [String] = []
     var selectedDay: String? { didSet { loadSelectedBrief() } }
@@ -16,6 +17,8 @@ final class BriefModel {
     private(set) var collection: [SavedItem] = []
     private(set) var isRefreshing = false
     private(set) var lastError: String?
+    /// Set while the launch intro plays over the window; a new value replays it.
+    var introID: UUID?
 
     var savedIDs: Set<String> { Set(collection.map(\.id)) }
     var allTags: [String] { Array(Set(collection.flatMap(\.tags))).sorted() }
@@ -45,6 +48,7 @@ final class BriefModel {
             Task { @MainActor in
                 // The widget's save button writes to the same file.
                 self?.collection = self?.store.loadCollection() ?? []
+                await self?.notifier.refreshState()
                 await self?.refreshIfDue()
             }
         })

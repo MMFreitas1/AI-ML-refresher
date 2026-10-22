@@ -17,12 +17,20 @@ public final class BriefStore: @unchecked Sendable {
         let fm = FileManager.default
         if let directory {
             self.directory = directory
-        } else if let group = Bundle.main.object(forInfoDictionaryKey: Self.appGroupKey) as? String,
-                  let container = fm.containerURL(forSecurityApplicationGroupIdentifier: group) {
-            self.directory = container.appendingPathComponent("AIBrief", isDirectory: true)
         } else {
-            self.directory = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("AIBrief", isDirectory: true)
+            let base: URL
+            if let group = Bundle.main.object(forInfoDictionaryKey: Self.appGroupKey) as? String,
+               let container = fm.containerURL(forSecurityApplicationGroupIdentifier: group) {
+                base = container
+            } else {
+                base = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            }
+            self.directory = base.appendingPathComponent("Refresher", isDirectory: true)
+            // Data from versions that used the folder name "AIBrief" moves over once.
+            let legacy = base.appendingPathComponent("AIBrief", isDirectory: true)
+            if !fm.fileExists(atPath: self.directory.path), fm.fileExists(atPath: legacy.path) {
+                try? fm.moveItem(at: legacy, to: self.directory)
+            }
         }
         try? fm.createDirectory(at: briefsDirectory, withIntermediateDirectories: true)
     }

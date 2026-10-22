@@ -1,5 +1,6 @@
-# Generates AIBrief.xcodeproj (app + widget extension). Run: ./scripts/make-xcode-project.sh
-name: AIBrief
+# Generates Refresher.xcodeproj (app, widget extension, background helper).
+# Run: ./scripts/make-xcode-project.sh
+name: Refresher
 options:
   bundleIdPrefix: com.mmfreitas
   deploymentTarget:
@@ -15,32 +16,43 @@ settings:
     # Apple ID team used for signing.
     DEVELOPMENT_TEAM: VC3335VCQD
     ENABLE_HARDENED_RUNTIME: YES
+    # The app's name, set by scripts/make-xcode-project.sh: "AI-ML Refresher", or the name in
+    # Brand/brand.env for official builds. Generate the project with that script, not xcodegen directly.
+    APP_DISPLAY_NAME: ${APP_DISPLAY_NAME}
 
 packages:
-  AIBriefPackage:
+  RefresherPackage:
     path: .
 
 targets:
-  AIBriefApp:
+  RefresherApp:
     type: application
     platform: macOS
-    sources: [Sources/BriefApp]
+    # App icon generated at build time: `swift run app-assets icon App/Assets.xcassets/AppIcon.appiconset`.
+    sources: [Sources/BriefApp, App/Assets.xcassets]
     dependencies:
-      - package: AIBriefPackage
+      - package: RefresherPackage
         product: BriefCore
-      - target: AIBriefWidget
+      - package: RefresherPackage
+        product: BriefUI
+      - target: RefresherWidget
+      # Background helper, registered as a login item by the app (SMAppService.loginItem).
+      - target: RefresherAgent
+        embed: true
+        codeSign: true
+        copy:
+          destination: wrapper
+          subpath: Contents/Library/LoginItems
     info:
       path: Config/App-Info.plist
       properties:
-        CFBundleDisplayName: AI Brief
+        CFBundleDisplayName: $(APP_DISPLAY_NAME)
         LSApplicationCategoryType: public.app-category.productivity
-        # Background app: no Dock icon. The widget and menu bar icon are the way in.
-        LSUIElement: true
         # Both targets read this to find the shared folder (see BriefStore).
         AppGroupIdentifier: $(TeamIdentifierPrefix)com.mmfreitas.aibrief
         CFBundleURLTypes:
-          - CFBundleURLName: com.mmfreitas.aibrief
-            CFBundleURLSchemes: [aibrief]
+          - CFBundleURLName: com.mmfreitas.aimlrefresher
+            CFBundleURLSchemes: [aimlrefresher]
     entitlements:
       path: Config/App.entitlements
       properties:
@@ -50,21 +62,53 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mmfreitas.aibrief
-        PRODUCT_NAME: AI Brief
+        PRODUCT_NAME: $(APP_DISPLAY_NAME)
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
-  AIBriefWidget:
+  RefresherAgent:
+    type: application
+    platform: macOS
+    sources: [Agent]
+    dependencies:
+      - package: RefresherPackage
+        product: BriefCore
+      - sdk: WidgetKit.framework
+    info:
+      path: Config/Agent-Info.plist
+      properties:
+        CFBundleDisplayName: $(APP_DISPLAY_NAME)
+        LSUIElement: true
+        LSBackgroundOnly: true
+        NSSupportsAutomaticTermination: false
+        NSSupportsSuddenTermination: false
+        AppGroupIdentifier: $(TeamIdentifierPrefix)com.mmfreitas.aibrief
+    entitlements:
+      path: Config/Agent.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.application-groups: [$(TeamIdentifierPrefix)com.mmfreitas.aibrief]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mmfreitas.aibrief.helper
+        PRODUCT_NAME: RefresherAgent
+        SKIP_INSTALL: YES
+
+  RefresherWidget:
     type: app-extension
     platform: macOS
     sources: [Widget]
     dependencies:
-      - package: AIBriefPackage
+      - package: RefresherPackage
         product: BriefCore
+      - package: RefresherPackage
+        product: BriefUI
       - sdk: WidgetKit.framework
       - sdk: SwiftUI.framework
     info:
       path: Config/Widget-Info.plist
       properties:
-        CFBundleDisplayName: AI Brief
+        CFBundleDisplayName: $(APP_DISPLAY_NAME)
         AppGroupIdentifier: $(TeamIdentifierPrefix)com.mmfreitas.aibrief
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
@@ -76,15 +120,16 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mmfreitas.aibrief.widget
-        PRODUCT_NAME: AIBriefWidget
+        PRODUCT_NAME: RefresherWidget
         SKIP_INSTALL: YES
 
 schemes:
-  AIBrief:
+  Refresher:
     build:
       targets:
-        AIBriefApp: all
-        AIBriefWidget: all
+        RefresherApp: all
+        RefresherWidget: all
+        RefresherAgent: all
     run:
       config: Debug
-      executable: AIBriefApp
+      executable: RefresherApp

@@ -9,7 +9,7 @@ let store = BriefStore()
 let command = CommandLine.arguments.dropFirst().first ?? "fetch"
 
 func printBrief(_ brief: DailyBrief) {
-    print("AI Brief — \(brief.day)  (\(brief.items.count) items, data in \(store.directory.path))\n")
+    print("AI-ML Refresher — \(brief.day)  (\(brief.items.count) items, data in \(store.directory.path))\n")
     for (i, item) in brief.items.enumerated() {
         let rank = String(format: "%2d", i + 1)
         print("\(rank). [\(String(format: "%.2f", item.score))] \(item.title)")

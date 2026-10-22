@@ -2,7 +2,7 @@ import Foundation
 
 public struct HTTP: Sendable {
     public var session: URLSession
-    public var userAgent = "AIBrief/1.0 (macOS; personal daily reading widget)"
+    public var userAgent = "AI-ML-Refresher/1.0 (+https://github.com/MMFreitas1/AI-ML-refresher)"
     /// Optional, raises GitHub's search rate limit. Read from the `GITHUB_TOKEN` environment variable.
     public var githubToken: String? = ProcessInfo.processInfo.environment["GITHUB_TOKEN"]
 

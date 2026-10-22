@@ -4,3 +4,9 @@
 DerivedData/
 .DS_Store
 xcuserdata/
+dist/
+
+# Private brand package (official builds only)
+Brand/
+# Generated at build time from the brand (or the neutral icon)
+App/Assets.xcassets/AppIcon.appiconset/
