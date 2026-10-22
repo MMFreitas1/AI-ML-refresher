@@ -80,7 +80,7 @@ The Windows app (`windows/`, C# and [Avalonia](https://avaloniaui.net)) uses the
 
 ### Install
 
-Download the `.exe` from `dist/` or a release and run it. It's a single self-contained file, so you don't need to install .NET. It isn't code-signed, so the first time you run it, Windows SmartScreen may say "Windows protected your PC". Click **More info → Run anyway**. *Settings → Start with Windows* is on by default.
+Download the `.exe` from a release, or build it (see below), and run it. It's a single self-contained file, so you don't need to install .NET. It isn't code-signed, so the first time you run it, Windows SmartScreen may say "Windows protected your PC". Click **More info → Run anyway**. *Settings → Start with Windows* is on by default.
 
 Data lives in `%APPDATA%\Refresher` (*Settings → Open Folder*). The `briefs/` and `collection.json` files use the same format as the Mac app's, so you can copy them between the two.
 
