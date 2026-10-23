@@ -29,8 +29,16 @@ DMG="$(./scripts/make-dmg.sh | sed -n 's/^Created \(.*\.dmg\) .*/\1/p')"
 EXE="$(./scripts/make-exe.sh | sed -n 's/^Created \(.*\.exe\) .*/\1/p')"
 [ -f "$DMG" ] && [ -f "$EXE" ] || { echo "Build failed." >&2; exit 1; }
 
-gh release create "$TAG" "$DMG" "$EXE" --draft --target main --title "$VERSION" --notes "\
+# Fixed file names, so the README's links to releases/latest/download/<name> always get the newest.
+STAGE="$(mktemp -d)"
+trap 'rm -rf "$STAGE"' EXIT
+cp "$DMG" "$STAGE/AI-ML-Refresher-macOS.dmg"
+cp "$EXE" "$STAGE/AI-ML-Refresher-Windows.exe"
+
+gh release create "$TAG" "$STAGE/AI-ML-Refresher-macOS.dmg" "$STAGE/AI-ML-Refresher-Windows.exe" --draft --target main --title "$VERSION" --notes "\
+See the README's Install section for step-by-step instructions.
+
 **macOS** (15 or later, Apple silicon): download the \`.dmg\`, open it and drag the app to Applications. It isn't notarized yet, so macOS blocks the first launch: go to **System Settings → Privacy & Security** and click **Open Anyway**.
 
 **Windows** (10 or 11, 64-bit): download the \`.exe\` and run it. It isn't code-signed yet, so Windows may say \"Windows protected your PC\": click **More info → Run anyway**."
-echo "Draft release $TAG created with $(basename "$DMG") and $(basename "$EXE"). Publish it on GitHub when ready." >&2
+echo "Draft release $TAG created. Publish it on GitHub when ready." >&2

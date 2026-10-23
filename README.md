@@ -11,6 +11,32 @@ Every day after **12:00 local time** it collects what's popular or trending acro
 
 No AI summaries and no API keys. The same inputs always produce the same list.
 
+## Install
+
+### macOS
+
+Requires macOS 15 or later on Apple silicon.
+
+1. Download **[AI-ML-Refresher-macOS.dmg](https://github.com/MMFreitas1/AI-ML-refresher/releases/latest/download/AI-ML-Refresher-macOS.dmg)**.
+2. Open it and drag the app onto **Applications**.
+3. Open the app from Applications. The first time, macOS blocks it because the app isn't notarized by Apple: go to **System Settings → Privacy & Security**, click **Open Anyway** and confirm. You only need to do this once.
+4. Add the widget: right-click the desktop → **Edit Widgets** → search for the app's name → pick medium or large.
+
+The background helper turns on by itself. If macOS asks, allow it under **System Settings → General → Login Items**.
+
+### Windows
+
+Requires Windows 10 or 11, 64-bit.
+
+1. Download **[AI-ML-Refresher-Windows.exe](https://github.com/MMFreitas1/AI-ML-refresher/releases/latest/download/AI-ML-Refresher-Windows.exe)**. It's a single file and doesn't need .NET or an installer.
+2. Move it somewhere permanent, for example a `Programs` folder in your user folder. *Start with Windows* (on by default) launches it from where it is, so don't run it from Downloads and then delete it.
+3. Double-click it. The first time, Windows may say "Windows protected your PC" because the app isn't code-signed: click **More info → Run anyway**.
+4. The app lives in the notification area (the icons by the clock; it may be under the **^** arrow). Closing the window keeps it running there; use **Quit** in its menu to stop it.
+
+To uninstall, turn off *Settings → Start with Windows* in the app, quit it from its menu and delete the file. Your data is in `%APPDATA%\Refresher`; delete that folder too if you don't want to keep your collection.
+
+All versions are on the [Releases](https://github.com/MMFreitas1/AI-ML-refresher/releases) page.
+
 ## Sources
 
 | Source | Signal used for ranking |
@@ -39,11 +65,7 @@ Fields (LLMs & NLP, Agents, Vision, Video & 3D, Audio & Speech, Robotics, Reinfo
 
 ## Build & run
 
-### Install from the disk image
-
-Download the `.dmg` from the [latest release](https://github.com/MMFreitas1/AI-ML-refresher/releases/latest) (or build it, below), open it and drag the app onto **Applications**.
-
-The app is signed with a development certificate, not notarized by Apple. On another Mac, macOS will block the first launch. To allow it, go to **System Settings → Privacy & Security** and click **Open Anyway**. You only need to do this once. Notarizing removes this step, but it requires the paid Apple Developer Program.
+To install a ready-made build, see [Install](#install). The app is signed with a development certificate, not notarized: notarizing removes the *Open Anyway* step, but it requires the paid Apple Developer Program.
 
 ### Build & install (app + widget)
 
@@ -78,9 +100,7 @@ The Windows app (`windows/`, C# and [Avalonia](https://avaloniaui.net)) uses the
 - **Notification area** (tray icon): it starts with Windows and builds the brief after 12:00. Its menu lists today's top 5, and each one can be opened or saved. There's no Windows widget.
 - **Notifications** (optional, bell button): a Windows notification when the day's brief is ready. Clicking it opens the window.
 
-### Install
-
-Download the `.exe` from the [latest release](https://github.com/MMFreitas1/AI-ML-refresher/releases/latest), or build it (see below), and run it. It's a single self-contained file, so you don't need to install .NET. It isn't code-signed, so the first time you run it, Windows SmartScreen may say "Windows protected your PC". Click **More info → Run anyway**. *Settings → Start with Windows* is on by default.
+To install a ready-made build, see [Install](#install).
 
 Data lives in `%APPDATA%\Refresher` (*Settings → Open Folder*). The `briefs/` and `collection.json` files use the same format as the Mac app's, so you can copy them between the two.
 
