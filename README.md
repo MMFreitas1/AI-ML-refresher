@@ -1,6 +1,6 @@
 # AI-ML Refresher
 
-A macOS widget and companion app for a 15-minute daily reading habit in AI & ML.
+A macOS widget and companion app, and a Windows app, for a 15-minute daily reading habit in AI & ML.
 
 Every day after **12:00 local time** it collects what's popular or trending across GitHub, Hugging Face, Hacker News, Reddit and a set of research blogs. It ranks everything with a fixed, deterministic formula and keeps the **top 15**.
 
@@ -10,6 +10,32 @@ Every day after **12:00 local time** it collects what's popular or trending acro
 - **Notifications** (optional, bell button): "Most recent AI & ML trends for you" every day at 12:05.
 
 No AI summaries and no API keys. The same inputs always produce the same list.
+
+## Install
+
+### macOS
+
+Requires macOS 15 or later on Apple silicon.
+
+1. Download **[AI-ML-Refresher-macOS.dmg](https://github.com/MMFreitas1/AI-ML-refresher/releases/latest/download/AI-ML-Refresher-macOS.dmg)**.
+2. Open it and drag the app onto **Applications**.
+3. Open the app from Applications. The first time, macOS blocks it because the app isn't notarized by Apple: go to **System Settings → Privacy & Security**, click **Open Anyway** and confirm. You only need to do this once.
+4. Add the widget: right-click the desktop → **Edit Widgets** → search for the app's name → pick medium or large.
+
+The background helper turns on by itself. If macOS asks, allow it under **System Settings → General → Login Items**.
+
+### Windows
+
+Requires Windows 10 or 11, 64-bit.
+
+1. Download **[AI-ML-Refresher-Windows.exe](https://github.com/MMFreitas1/AI-ML-refresher/releases/latest/download/AI-ML-Refresher-Windows.exe)**. It's a single file and doesn't need .NET or an installer.
+2. Move it somewhere permanent, for example a `Programs` folder in your user folder. *Start with Windows* (on by default) launches it from where it is, so don't run it from Downloads and then delete it.
+3. Double-click it. The first time, Windows may say "Windows protected your PC" because the app isn't code-signed: click **More info → Run anyway**.
+4. The app lives in the notification area (the icons by the clock; it may be under the **^** arrow). Closing the window keeps it running there; use **Quit** in its menu to stop it.
+
+To uninstall, turn off *Settings → Start with Windows* in the app, quit it from its menu and delete the file. Your data is in `%APPDATA%\Refresher`; delete that folder too if you don't want to keep your collection.
+
+All versions are on the [Releases](https://github.com/MMFreitas1/AI-ML-refresher/releases) page.
 
 ## Sources
 
@@ -39,11 +65,7 @@ Fields (LLMs & NLP, Agents, Vision, Video & 3D, Audio & Speech, Robotics, Reinfo
 
 ## Build & run
 
-### Install from the disk image
-
-Open the `.dmg` from `dist/` (or a release) and drag the app onto **Applications**.
-
-The app is signed with a development certificate, not notarized by Apple. On another Mac, macOS will block the first launch. To allow it, go to **System Settings → Privacy & Security** and click **Open Anyway**. You only need to do this once. Notarizing removes this step, but it requires the paid Apple Developer Program.
+To install a ready-made build, see [Install](#install). The app is signed with a development certificate, not notarized: notarizing removes the *Open Anyway* step, but it requires the paid Apple Developer Program.
 
 ### Build & install (app + widget)
 
@@ -70,9 +92,41 @@ swift run brief-cli show   # print the latest saved brief
 swift test                 # unit tests (needs Xcode's toolchain)
 ```
 
+## Windows
+
+The Windows app (`windows/`, C# and [Avalonia](https://avaloniaui.net)) uses the same sources, ranking formula and data format as the Mac app:
+
+- **Window**: the same two panes. Today's items are on the left and your collection is on the right. Drag items across or click the bookmark to save them. Tags, notes and read state are kept, and the ‹ › arrows browse past days. Closing the window keeps the app running.
+- **Notification area** (tray icon): it starts with Windows and builds the brief after 12:00. Its menu lists today's top 5, and each one can be opened or saved. There's no Windows widget.
+- **Notifications** (optional, bell button): a Windows notification when the day's brief is ready. Clicking it opens the window.
+
+To install a ready-made build, see [Install](#install).
+
+Data lives in `%APPDATA%\Refresher` (*Settings → Open Folder*). The `briefs/` and `collection.json` files use the same format as the Mac app's, so you can copy them between the two.
+
+### Build
+
+Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download). It builds on Windows, macOS or Linux.
+
+```bash
+./scripts/make-exe.sh          # dist/AI-ML-Refresher-<version>-windows.exe (x64; pass arm64 for ARM)
+cd windows
+dotnet test                    # core tests (ranking, categorization, parsers, schedule, store)
+dotnet run --project Refresher.Cli -- fetch   # build today's brief now and print it
+dotnet run --project Refresher.App            # run the app (also works on a Mac, for previewing)
+```
+
+On Windows without Git Bash, run the publish command from `scripts/make-exe.sh` directly, or open `windows/Refresher.sln` in Visual Studio or Rider. Notifications and *Start with Windows* only work in Windows builds. A preview run on a Mac stores its data in `~/Library/Application Support/Refresher (Windows preview)`.
+
+## Releases
+
+`./scripts/release.sh` builds the `.dmg` and the `.exe` on a Mac and attaches both to a draft GitHub release, tagged with the version in `project.yml` (keep `windows/Directory.Build.props` the same). Review the draft on GitHub, then publish it.
+
+Official releases are built with a private brand kit cloned next to this repository (`../brand-kit`), which adds their name, icon and launch animation. Without it, every script builds the neutral app.
+
 ## License
 
-The code is MIT licensed (`LICENSE`). Builds from this repository are unbranded and named "AI-ML Refresher". Official releases add their own name, icon and launch animation from a private package that isn't part of this repository. Those are not licensed for reuse; see `BRAND.md`.
+The code is MIT licensed (`LICENSE`). Builds from this repository are unbranded and named "AI-ML Refresher". Official releases (macOS and Windows) add their own name, icon and launch animation from a private brand kit that isn't part of this repository. Those are not licensed for reuse; see `BRAND.md`.
 
 ## Data
 
@@ -100,4 +154,11 @@ Sources/brief-cli/   command-line fetch/show
 Widget/              WidgetKit extension (built by Xcode only)
 Tests/               ranking, categorization, parsers, schedule, store
 project.yml          XcodeGen spec for the app + widget project
+windows/             Windows app (.NET 10 + Avalonia)
+  Refresher.Core/    port of BriefCore: same sources, ranking and JSON format
+  Refresher.App/     two-pane window, tray menu, start with Windows, notifications; AppBrand
+  Refresher.Cli/     command-line fetch/show
+  Refresher.Core.Tests/
+scripts/make-exe.sh  single-file Windows .exe in dist/
+scripts/release.sh   .dmg + .exe as a draft GitHub release
 ```

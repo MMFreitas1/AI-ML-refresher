@@ -6,8 +6,10 @@ import SwiftUI
 // Usage:
 //   app-assets icon <AppIcon.appiconset dir>   render the macOS app icon set (run by build-release.sh)
 //   app-assets preview <dir>                   render widget, icon and intro previews to check the look
+//   app-assets ico <file.ico> [--neutral]      render the Windows icon (.ico, plus a 256px .png beside it)
 //
-// Both use AppBrand: the private brand when Brand/ is present, the neutral look otherwise.
+// All use AppBrand: the private brand when Brand/ is present, the neutral look otherwise
+// (or with --neutral, for the icon committed in windows/).
 
 @MainActor
 func png(_ view: some View, size: CGSize, scheme: ColorScheme = .light, to url: URL) throws {
@@ -77,9 +79,82 @@ func renderPreviews(into dir: URL) throws {
             size: CGSize(width: 312, height: 168), to: dir.appendingPathComponent("app-icon-sizes.png"))
 }
 
-let args = CommandLine.arguments.dropFirst()
-guard args.count == 2, let dir = args.last.map({ URL(fileURLWithPath: $0) }) else {
-    print("usage: app-assets icon|preview <dir>")
+/// Neutral Windows icon. Drawn from plain shapes: SF Symbols may only ship on Apple platforms.
+struct NeutralWindowsIcon: View {
+    var body: some View {
+        GeometryReader { g in
+            let s = min(g.size.width, g.size.height)
+            ZStack {
+                RoundedRectangle(cornerRadius: s * 0.22, style: .continuous)
+                    .fill(LinearGradient(colors: [Color(white: 0.32), Color(white: 0.16)], startPoint: .top, endPoint: .bottom))
+                // A stack of three cards, front one brightest.
+                ForEach(0..<3) { i in
+                    RoundedRectangle(cornerRadius: s * 0.05, style: .continuous)
+                        .fill(Color.white.opacity([0.35, 0.6, 1.0][i]))
+                        .frame(width: s * (0.42 + 0.06 * Double(i)), height: s * 0.30)
+                        .offset(y: s * (-0.12 + 0.09 * Double(i)))
+                }
+                Sparkle()
+                    .fill(Color.white)
+                    .frame(width: s * 0.22, height: s * 0.22)
+                    .offset(x: s * 0.24, y: s * -0.25)
+            }
+            .frame(width: s, height: s)
+        }
+        .aspectRatio(1, contentMode: .fit)
+    }
+}
+
+/// Four-pointed star.
+struct Sparkle: Shape {
+    func path(in r: CGRect) -> Path {
+        let c = CGPoint(x: r.midX, y: r.midY), w = r.width / 2, k = w * 0.22
+        var p = Path()
+        p.move(to: CGPoint(x: c.x, y: c.y - w))
+        p.addQuadCurve(to: CGPoint(x: c.x + w, y: c.y), control: CGPoint(x: c.x + k, y: c.y - k))
+        p.addQuadCurve(to: CGPoint(x: c.x, y: c.y + w), control: CGPoint(x: c.x + k, y: c.y + k))
+        p.addQuadCurve(to: CGPoint(x: c.x - w, y: c.y), control: CGPoint(x: c.x - k, y: c.y + k))
+        p.addQuadCurve(to: CGPoint(x: c.x, y: c.y - w), control: CGPoint(x: c.x - k, y: c.y - k))
+        return p
+    }
+}
+
+/// Windows .ico with PNG-compressed entries (supported since Windows Vista).
+@MainActor
+func renderICO(to file: URL, neutral: Bool) throws {
+    let icon: AnyView = neutral || !AppBrand.isBranded ? AnyView(NeutralWindowsIcon()) : AnyView(AppBrand.appIcon())
+    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: tmp) }
+
+    let sizes = [16, 20, 24, 32, 40, 48, 64, 128, 256]
+    var images: [Data] = []
+    for px in sizes {
+        let url = tmp.appendingPathComponent("\(px).png")
+        try png(icon, size: CGSize(width: px, height: px), to: url)
+        images.append(try Data(contentsOf: url))
+    }
+    var ico = Data()
+    func u16(_ v: Int) { ico.append(contentsOf: [UInt8(v & 0xFF), UInt8(v >> 8 & 0xFF)]) }
+    func u32(_ v: Int) { u16(v & 0xFFFF); u16(v >> 16) }
+    u16(0); u16(1); u16(sizes.count)
+    var offset = 6 + 16 * sizes.count
+    for (px, data) in zip(sizes, images) {
+        ico.append(UInt8(px >= 256 ? 0 : px)); ico.append(UInt8(px >= 256 ? 0 : px))
+        ico.append(0); ico.append(0)
+        u16(1); u16(32); u32(data.count); u32(offset)
+        offset += data.count
+    }
+    images.forEach { ico.append($0) }
+    try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+    try ico.write(to: file)
+    try images.last!.write(to: file.deletingPathExtension().appendingPathExtension("png"))
+}
+
+let args = Array(CommandLine.arguments.dropFirst())
+let usage = "usage: app-assets icon|preview <dir> | app-assets ico <file.ico> [--neutral]"
+guard args.count >= 2, let dir = args.dropFirst().first.map({ URL(fileURLWithPath: $0) }) else {
+    print(usage)
     exit(2)
 }
 MainActor.assumeIsolated {
@@ -87,7 +162,8 @@ MainActor.assumeIsolated {
         switch args.first {
         case "icon": try renderIcon(into: dir)
         case "preview": try renderPreviews(into: dir)
-        default: print("usage: app-assets icon|preview <dir>"); exit(2)
+        case "ico": try renderICO(to: dir, neutral: args.contains("--neutral"))
+        default: print(usage); exit(2)
         }
         print("Wrote \(dir.path)")
     } catch {
