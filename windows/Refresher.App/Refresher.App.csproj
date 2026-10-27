@@ -40,6 +40,8 @@
     <PackageReference Include="Avalonia" Version="12.1.4" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+    <!-- Encrypts the Google sign-in for Sync with Google (Windows only; see GoogleSync.cs). -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.0" />
   </ItemGroup>
   <ItemGroup Condition="'$(IsWindowsBuild)' == 'true'">
     <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />

@@ -27,6 +27,38 @@
       </StackPanel>
     </Border>
 
+    <StackPanel x:Name="SyncSection">
+      <TextBlock Classes="sectionTitle" Text="Sync" />
+      <Border Classes="section">
+        <StackPanel Spacing="8">
+          <StackPanel Spacing="8" IsVisible="{Binding !Sync.IsOn}">
+            <TextBlock Classes="caption secondary" TextWrapping="Wrap"
+                       Text="Keep your collection the same on your PC, Mac and phone. Sign in with the same Google account on each one." />
+            <Button Content="Sync with Google…" Click="OnSignIn" IsVisible="{Binding Sync.IsOff}" />
+            <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding Sync.IsSigningIn}">
+              <TextBlock Text="Finish signing in in your browser…" VerticalAlignment="Center" />
+              <Button Grid.Column="1" Content="Cancel" Click="OnCancelSignIn" />
+            </Grid>
+            <TextBlock Classes="caption" Foreground="Red" TextWrapping="Wrap"
+                       Text="{Binding Sync.SignInError}" IsVisible="{Binding Sync.HasSignInError}" />
+          </StackPanel>
+          <StackPanel Spacing="8" IsVisible="{Binding Sync.IsOn}">
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,6,Auto">
+              <TextBlock Text="Account" />
+              <TextBlock Grid.Column="1" Classes="secondary" Text="{Binding Sync.Email}" />
+              <TextBlock Grid.Row="2" Text="Status" />
+              <TextBlock Grid.Row="2" Grid.Column="1" Classes="secondary" Text="{Binding Sync.StatusText}" />
+            </Grid>
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <Button Content="Sync Now" Click="OnSyncNow" IsVisible="{Binding !Sync.NeedsSignIn}" IsEnabled="{Binding Sync.CanSyncNow}" />
+              <Button Content="Sign In Again…" Click="OnSignIn" IsVisible="{Binding Sync.NeedsSignIn}" />
+              <Button Grid.Column="2" Content="Stop Syncing" Click="OnSignOut" />
+            </Grid>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+
     <StackPanel x:Name="AppearanceSection">
       <TextBlock Classes="sectionTitle" Text="Appearance" />
       <Border Classes="section">

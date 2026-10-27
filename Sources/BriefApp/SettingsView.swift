@@ -85,6 +85,7 @@ struct SettingsView: View {
                 }
                 if let backgroundError { Text(backgroundError).font(.caption).foregroundStyle(.red) }
             }
+            if model.sync.isAvailable { SyncSection(sync: model.sync) }
             if AppBrand.hasIntro {
                 Section("Appearance") {
                     Toggle("Play intro animation at launch", isOn: $playIntro)
