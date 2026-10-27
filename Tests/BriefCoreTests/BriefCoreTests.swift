@@ -134,3 +134,84 @@ private func item(_ title: String, _ kind: SourceKind, _ raw: Double, url: Strin
         #expect(saved.count == 1 && saved[0].tags == ["rl"] && saved[0].isRead)
     }
 }
+
+// MARK: - Sync
+
+private func at(_ minute: Int) -> Date { Date(timeIntervalSince1970: 1_793_102_400 + Double(minute) * 60) }
+
+private func saved(_ id: String, _ savedMin: Int, _ updatedMin: Int? = nil, note: String = "") -> SavedItem {
+    SavedItem(item: BriefItem(url: URL(string: "https://example.com/\(id)")!, title: id, summary: "", kind: .blog,
+                              source: "Blog", metric: "", rawScore: 1),
+              savedAt: at(savedMin), note: note, updatedAt: updatedMin.map(at))
+}
+
+@Suite struct SyncTests {
+    @Test func newestCopyWins() {
+        let local = SyncSnapshot(items: [saved("a", 0, 5, note: "local")])
+        let remote = SyncSnapshot(items: [saved("a", 0, 7, note: "remote")])
+        #expect(CollectionSync.merge(local, remote).items.first?.note == "remote")
+        #expect(CollectionSync.merge(remote, local).items.first?.note == "remote")
+    }
+
+    @Test func removalBeatsOlderCopiesButNotNewerOnes() {
+        let removed = SyncSnapshot(deleted: ["example.com/a": at(3)])
+        #expect(CollectionSync.merge(SyncSnapshot(items: [saved("a", 0, 2)]), removed).items.isEmpty)
+        let kept = CollectionSync.merge(SyncSnapshot(items: [saved("a", 0, 4)]), removed)
+        #expect(kept.items.count == 1 && kept.deleted.isEmpty)
+    }
+
+    @Test func symmetricAndIdempotent() {
+        let a = SyncSnapshot(items: [saved("a", 0, 1), saved("b", 1, 6)], deleted: ["example.com/c": at(4)])
+        let b = SyncSnapshot(items: [saved("b", 1, 3), saved("c", 2, 2), saved("d", 3)])
+        let ab = CollectionSync.merge(a, b)
+        #expect(ab == CollectionSync.merge(b, a))
+        #expect(ab == CollectionSync.merge(ab, ab))
+        #expect(ab.items.map(\.id) == ["example.com/d", "example.com/b", "example.com/a"])
+    }
+
+    /// The sync file is shared with the Windows and Android apps.
+    @Test func readsTheSharedSyncFormat() throws {
+        let json = """
+            {"items":[{"item":{"id":"x","title":"T","summary":"","url":"https://x","kind":"blog","source":"B","metric":"",
+              "rawScore":1.0,"score":0.0,"field":"Agents"},"savedAt":"2026-10-21T18:02:11Z","tags":["t"],"note":"",
+              "isRead":true,"updatedAt":"2026-10-22T08:00:00Z"}],"deleted":{"example.com/gone":"2026-10-23T09:30:00Z"}}
+            """
+        let s = try DriveFile.decoder.decode(SyncSnapshot.self, from: Data(json.utf8))
+        #expect(s.items[0].changedAt == ISO8601DateFormatter().date(from: "2026-10-22T08:00:00Z"))
+        #expect(s.deleted["example.com/gone"] == ISO8601DateFormatter().date(from: "2026-10-23T09:30:00Z"))
+    }
+
+    final class FakeRemote: RemoteCollection, @unchecked Sendable {
+        var file: SyncSnapshot?
+        var writes = 0
+        func find() async throws -> String? { file == nil ? nil : "id" }
+        func read(id: String) async throws -> SyncSnapshot { file! }
+        func create(_ s: SyncSnapshot) async throws -> String { file = s; writes += 1; return "id" }
+        func update(id: String, _ s: SyncSnapshot) async throws { file = s; writes += 1 }
+    }
+
+    @Test func twoDevicesConverge() async throws {
+        let dirs = (0..<2).map { _ in FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString) }
+        defer { dirs.forEach { try? FileManager.default.removeItem(at: $0) } }
+        let remote = FakeRemote()
+        let phone = BriefStore(directory: dirs[0]), mac = BriefStore(directory: dirs[1])
+        try phone.updateCollection(now: at(1)) { $0.append(saved("a", 1)) }
+        try mac.updateCollection(now: at(2)) { $0.append(saved("b", 2)) }
+
+        _ = try await CollectionSyncer(store: phone, remote: remote).sync()
+        #expect(try await CollectionSyncer(store: mac, remote: remote).sync().changedLocally)
+        _ = try await CollectionSyncer(store: phone, remote: remote).sync()
+        #expect(phone.loadCollection() == mac.loadCollection())
+        #expect(phone.loadCollection().count == 2)
+
+        try mac.updateCollection(now: at(3)) { $0.removeAll { $0.id == "example.com/a" } }
+        #expect(mac.loadDeleted()["example.com/a"] == at(3))
+        _ = try await CollectionSyncer(store: mac, remote: remote).sync()
+        _ = try await CollectionSyncer(store: phone, remote: remote).sync()
+        #expect(phone.loadCollection().map(\.id) == ["example.com/b"])
+
+        let writes = remote.writes
+        #expect(try await CollectionSyncer(store: phone, remote: remote).sync().uploaded == false)
+        #expect(remote.writes == writes)
+    }
+}

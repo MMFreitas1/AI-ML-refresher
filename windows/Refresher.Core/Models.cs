@@ -93,12 +93,15 @@ public sealed record DailyBrief(string Day, DateTimeOffset GeneratedAt, IReadOnl
 public sealed record SavedItem
 {
     public required BriefItem Item { get; init; }
-    public DateTimeOffset SavedAt { get; init; } = DateTimeOffset.Now;
+    public DateTimeOffset SavedAt { get; init; } = SyncClock.Now;
     public List<string> Tags { get; init; } = [];
     public string Note { get; init; } = "";
     public bool IsRead { get; init; }
+    /// <summary>Last change to tags, note or read state, for syncing. Absent in files from before sync: then SavedAt.</summary>
+    public DateTimeOffset? UpdatedAt { get; init; }
 
     [JsonIgnore] public string Id => Item.Id;
+    [JsonIgnore] public DateTimeOffset ChangedAt => UpdatedAt ?? SavedAt;
 }
 
 public static class Canonical

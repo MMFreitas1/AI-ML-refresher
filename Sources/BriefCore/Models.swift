@@ -113,15 +113,20 @@ public struct SavedItem: Codable, Identifiable, Hashable, Sendable {
     public var tags: [String]
     public var note: String
     public var isRead: Bool
+    /// Last change to tags, note or read state, for syncing. Absent in files from before sync: then `savedAt`.
+    public var updatedAt: Date?
 
     public var id: String { item.id }
+    public var changedAt: Date { updatedAt ?? savedAt }
 
-    public init(item: BriefItem, savedAt: Date = .now, tags: [String] = [], note: String = "", isRead: Bool = false) {
+    public init(item: BriefItem, savedAt: Date = SyncClock.now, tags: [String] = [], note: String = "",
+                isRead: Bool = false, updatedAt: Date? = nil) {
         self.item = item
         self.savedAt = savedAt
         self.tags = tags
         self.note = note
         self.isRead = isRead
+        self.updatedAt = updatedAt
     }
 }
 

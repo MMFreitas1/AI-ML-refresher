@@ -1,6 +1,6 @@
 # AI-ML Refresher
 
-A macOS widget and companion app, and a Windows app, for a 15-minute daily reading habit in AI & ML.
+A macOS widget and companion app, a Windows app and an Android app with a home-screen widget, for a 15-minute daily reading habit in AI & ML.
 
 Every day after **12:00 local time** it collects what's popular or trending across GitHub, Hugging Face, Hacker News, Reddit and a set of research blogs. It ranks everything with a fixed, deterministic formula and keeps the **top 15**.
 
@@ -8,6 +8,8 @@ Every day after **12:00 local time** it collects what's popular or trending acro
 - **App window**: today's items on the left and your **collection** on the right. Drag items across to save them. Saved items keep tags, notes and read/unread state forever. The ‹ › arrows browse past days.
 - **Background helper**: a small invisible helper inside the app builds the brief after 12:00 and keeps the widget current, even with the app closed. The app itself behaves like any Mac app: it bounces in the Dock when launched and quits when you close its window.
 - **Notifications** (optional, bell button): "Most recent AI & ML trends for you" every day at 12:05.
+
+- **Sync** (optional, official releases): sign in with Google on each device to keep your collection the same on your Mac, PC and phone.
 
 No AI summaries and no API keys. The same inputs always produce the same list.
 
@@ -34,6 +36,16 @@ Requires Windows 10 or 11, 64-bit.
 4. The app lives in the notification area (the icons by the clock; it may be under the **^** arrow). Closing the window keeps it running there; use **Quit** in its menu to stop it.
 
 To uninstall, turn off *Settings → Start with Windows* in the app, quit it from its menu and delete the file. Your data is in `%APPDATA%\Refresher`; delete that folder too if you don't want to keep your collection.
+
+### Android
+
+Requires Android 8.0 or later.
+
+1. On your phone, download **[AI-ML-Refresher-Android.apk](https://github.com/MMFreitas1/AI-ML-refresher/releases/latest/download/AI-ML-Refresher-Android.apk)**.
+2. Open the downloaded file. The first time, Android asks you to allow installs from your browser (or file manager): allow it, go back and tap **Install**. The app isn't on Google Play, so Play Protect may also ask you to confirm.
+3. Add the widget: long-press the home screen → **Widgets** → find the app → drag *Today's top 5* to the home screen. Or use *⋮ → Settings → Add widget to home screen* in the app.
+
+To update, install a newer `.apk` over it: your collection is kept. To uninstall, long-press the app icon → **Uninstall** (this deletes your collection).
 
 All versions are on the [Releases](https://github.com/MMFreitas1/AI-ML-refresher/releases) page.
 
@@ -118,15 +130,59 @@ dotnet run --project Refresher.App            # run the app (also works on a Mac
 
 On Windows without Git Bash, run the publish command from `scripts/make-exe.sh` directly, or open `windows/Refresher.sln` in Visual Studio or Rider. Notifications and *Start with Windows* only work in Windows builds. A preview run on a Mac stores its data in `~/Library/Application Support/Refresher (Windows preview)`.
 
+## Android
+
+The Android app (`android/`, Kotlin and Jetpack Compose) uses the same sources, ranking formula and data format:
+
+- **App**: today's items and your collection, as two tabs on phones and side by side on tablets. Tap an item to open it and the bookmark to save it. Tap a saved item to edit its tags and note or mark it read. The ‹ › arrows browse past days.
+- **Widget**: today's top 5. Tap an item to open it or its bookmark to save it, and tap the title to open the app.
+- **Background refresh**: a WorkManager job builds the brief after 12:00 even with the app closed, as soon as the phone is online. It survives restarts and catches up if the phone was off at noon.
+- **Notifications** (optional, bell button): "Most recent AI & ML trends for you" when the day's brief is ready.
+
+Data is kept in the app's private storage (`files/Refresher/`), in the same `briefs/` and `collection.json` format as the other apps.
+
+### Build
+
+Requires a JDK (17 or later) and the Android SDK with platform 37, for example from [Android Studio](https://developer.android.com/studio). Open `android/` in Android Studio, or use the command line:
+
+```bash
+./scripts/make-apk.sh                 # dist/AI-ML-Refresher-<version>-android.apk (signed release)
+cd android
+./gradlew :core:test                  # core tests on the JVM (ranking, categorization, parsers, schedule, store)
+./gradlew :app:installDebug           # install a debug build on a connected phone or emulator
+```
+
+`make-apk.sh` finds the JDK and SDK through `JAVA_HOME` and `ANDROID_HOME`, or in `~/.jdk`, `~/.android-sdk` and Android Studio's default locations. Release builds are signed with the key named in `android/keystore.properties`, which isn't in git:
+
+```properties
+storeFile=/path/to/release.jks
+storePassword=…
+keyAlias=release
+keyPassword=…
+```
+
+Create a key with `keytool -genkeypair -keystore release.jks -storetype PKCS12 -alias release -keyalg RSA -keysize 4096 -validity 36500`. Keep the key and its password backed up: Android only installs an update over an existing app when it's signed with the same key.
+
+## Sync
+
+Official releases can keep the collection (saved items, tags, notes, read state) the same on every device. In *Settings → Sync*, choose **Sync with Google** and sign in with the same Google account on each device. Today's brief isn't synced: each device builds the same list on its own.
+
+- **Where:** one file, *AI-ML Refresher library.json*, in your Google Drive. The app uses Google's `drive.file` permission, so it can only see files it created. See [PRIVACY.md](PRIVACY.md).
+- **When:** when the app opens, a few seconds after each change, and every 15 minutes while it runs (on Android, also with the daily brief).
+- **Merging:** per item, the most recent change wins. Removing an item removes it everywhere, unless it was changed again on another device after the removal. The rules are in `CollectionSync` (`Sources/BriefCore/Sync.swift`, `windows/Refresher.Core/Sync.cs`, `android/core/…/Sync.kt`) and are the same in all three apps, with tests.
+- **Sign-in:** macOS and Windows open Google's sign-in in the browser, which then returns to the app on a `127.0.0.1` port. The sign-in is kept in the macOS keychain, or encrypted for your Windows user. Android uses the Google account on the phone.
+
+Builds from this repository don't offer sync: Google sign-in needs an OAuth client in a Google Cloud project, and the official one is in the private brand kit. To sync your own build, create a project with the Google Drive API and the `drive.file` scope, then provide a Desktop client through `AppBrand.googleClient` (macOS) or `AppBrand.GoogleClient` (Windows). For Android, register an Android client for your package name and signing key, and set `sync_available` to `true`.
+
 ## Releases
 
-`./scripts/release.sh` builds the `.dmg` and the `.exe` on a Mac and attaches both to a draft GitHub release, tagged with the version in `project.yml` (keep `windows/Directory.Build.props` the same). Review the draft on GitHub, then publish it.
+`./scripts/release.sh` builds the `.dmg`, the `.exe` and the `.apk` on a Mac and attaches them to a draft GitHub release, tagged with the version in `project.yml` (keep `windows/Directory.Build.props` and `versionName` in `android/app/build.gradle.kts` the same, and raise `versionCode` there for every Android release). Review the draft on GitHub, then publish it.
 
 Official releases are built with a private brand kit cloned next to this repository (`../brand-kit`), which adds their name, icon and launch animation. Without it, every script builds the neutral app.
 
 ## License
 
-The code is MIT licensed (`LICENSE`). Builds from this repository are unbranded and named "AI-ML Refresher". Official releases (macOS and Windows) add their own name, icon and launch animation from a private brand kit that isn't part of this repository. Those are not licensed for reuse; see `BRAND.md`.
+The code is MIT licensed (`LICENSE`). Builds from this repository are unbranded and named "AI-ML Refresher". Official releases (macOS, Windows and Android) add their own name, icon and launch animation from a private brand kit that isn't part of this repository. Those are not licensed for reuse; see `BRAND.md`.
 
 ## Data
 
@@ -159,6 +215,12 @@ windows/             Windows app (.NET 10 + Avalonia)
   Refresher.App/     two-pane window, tray menu, start with Windows, notifications; AppBrand
   Refresher.Cli/     command-line fetch/show
   Refresher.Core.Tests/
+android/             Android app (Kotlin + Jetpack Compose)
+  core/              port of BriefCore (plain Kotlin, tested on the JVM): same sources, ranking and JSON format
+  app/               two tabs or panes, Glance widget, WorkManager refresh, notifications; AppBrand
+  app/src/neutral/   name, icon and BrandKit for builds without the private brand kit
 scripts/make-exe.sh  single-file Windows .exe in dist/
-scripts/release.sh   .dmg + .exe as a draft GitHub release
+scripts/make-apk.sh  signed Android .apk in dist/
+PRIVACY.md           privacy policy (linked from the Google sign-in screen)
+scripts/release.sh   .dmg + .exe + .apk as a draft GitHub release
 ```

@@ -24,6 +24,15 @@ public static class AppBrand
     public static string DisplayName => "AI-ML Refresher";
 #endif
 
+    /// <summary>The Google Cloud OAuth client ("Desktop app") for Sync with Google. Official builds only:
+    /// it belongs to the official app's Google project. Without it, sync isn't offered.</summary>
+    public static (string Id, string Secret)? GoogleClient =>
+#if PRIVATE_BRAND
+        BrandKit.GoogleClient;
+#else
+        null;
+#endif
+
     /// <summary>Registers brand fonts with Avalonia. Called while the app is being built.</summary>
     public static AppBuilder Configure(AppBuilder builder)
     {

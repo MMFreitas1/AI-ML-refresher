@@ -9,6 +9,7 @@ namespace Refresher.Core;
 ///
 ///     &lt;dir&gt;/briefs/2026-10-08.json   one ranked list per day (kept as history)
 ///     &lt;dir&gt;/collection.json          saved items with tags, notes and read state
+///     &lt;dir&gt;/deleted.json             when each removed item was removed, so removals sync
 ///
 /// &lt;dir&gt; defaults to %APPDATA%\Refresher on Windows.
 /// </summary>
@@ -28,6 +29,7 @@ public sealed class BriefStore
 
     string BriefsDirectory => Path.Combine(Directory, "briefs");
     string CollectionPath => Path.Combine(Directory, "collection.json");
+    string DeletedPath => Path.Combine(Directory, "deleted.json");
 
     public static readonly JsonSerializerOptions Json = new()
     {
@@ -71,17 +73,55 @@ public sealed class BriefStore
         lock (_lock) return ReadCollection();
     }
 
-    /// <summary>Read-modify-write under a lock, so the tray menu and the window don't overwrite each other.</summary>
-    public List<SavedItem> UpdateCollection(Action<List<SavedItem>> mutate)
+    /// <summary>Read-modify-write under a lock, so the tray menu and the window don't overwrite each other.
+    /// Changed items get a new UpdatedAt and removed ones a deletion time, for syncing.</summary>
+    public List<SavedItem> UpdateCollection(Action<List<SavedItem>> mutate, DateTimeOffset? now = null)
     {
         lock (_lock)
         {
+            var at = now ?? SyncClock.Now;
+            var before = ReadCollection().ToDictionary(s => s.Id, Fingerprint);
             var items = ReadCollection();
             mutate(items);
+            for (var i = 0; i < items.Count; i++)
+                if (!before.TryGetValue(items[i].Id, out var old) || old != Fingerprint(items[i]))
+                    items[i] = items[i] with { UpdatedAt = at };
+
+            var deleted = ReadDeleted();
+            var kept = items.Select(s => s.Id).ToHashSet();
+            var removed = before.Keys.Where(id => !kept.Contains(id)).ToList();
+            if (removed.Count > 0 || kept.Any(deleted.ContainsKey))
+            {
+                foreach (var id in removed) deleted[id] = at;
+                foreach (var id in kept) deleted.Remove(id);
+                WriteAtomic(DeletedPath, JsonSerializer.SerializeToUtf8Bytes(deleted, Json));
+            }
             WriteAtomic(CollectionPath, JsonSerializer.SerializeToUtf8Bytes(items, Json));
             return items;
         }
     }
+
+    /// <summary>Removed item IDs and when they were removed.</summary>
+    public Dictionary<string, DateTimeOffset> LoadDeleted()
+    {
+        lock (_lock) return ReadDeleted();
+    }
+
+    /// <summary>Applies a sync: merges <paramref name="remote"/> into the collection under the lock, without
+    /// re-stamping, and returns the merged state. Local changes made meanwhile are part of the merge.</summary>
+    public SyncSnapshot MergeCollection(SyncSnapshot remote)
+    {
+        lock (_lock)
+        {
+            var merged = CollectionSync.Merge(new SyncSnapshot(ReadCollection(), ReadDeleted()), remote);
+            WriteAtomic(DeletedPath, JsonSerializer.SerializeToUtf8Bytes(merged.Deleted, Json));
+            WriteAtomic(CollectionPath, JsonSerializer.SerializeToUtf8Bytes(merged.Items, Json));
+            return merged;
+        }
+    }
+
+    /// <summary>Content comparison (records compare lists by reference).</summary>
+    internal static string Fingerprint(SavedItem s) => JsonSerializer.Serialize(s, Json);
 
     /// <summary>Adds the item if it isn't saved yet. Returns false when it was already there.</summary>
     public bool Save(BriefItem item)
@@ -99,6 +139,12 @@ public sealed class BriefStore
     List<SavedItem> ReadCollection()
     {
         try { return JsonSerializer.Deserialize<List<SavedItem>>(File.ReadAllBytes(CollectionPath), Json) ?? []; }
+        catch (Exception e) when (e is IOException or JsonException or UnauthorizedAccessException) { return []; }
+    }
+
+    Dictionary<string, DateTimeOffset> ReadDeleted()
+    {
+        try { return JsonSerializer.Deserialize<Dictionary<string, DateTimeOffset>>(File.ReadAllBytes(DeletedPath), Json) ?? []; }
         catch (Exception e) when (e is IOException or JsonException or UnauthorizedAccessException) { return []; }
     }
 

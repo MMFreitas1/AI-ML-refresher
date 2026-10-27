@@ -42,6 +42,7 @@ public sealed class BriefModel : Observable
         : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Refresher (Windows preview)"));
     public AppSettings Settings { get; }
     public Notifier Notifier { get; }
+    public GoogleSync Sync { get; }
 
     /// <summary>Raised after a new brief was built, for the tray menu.</summary>
     public event Action? BriefChanged;
@@ -50,12 +51,19 @@ public sealed class BriefModel : Observable
     {
         Settings = AppSettings.Load(Store);
         Notifier = new Notifier(this);
+        Sync = new GoogleSync(Store);
+        Sync.CollectionChanged += ReloadCollection;
         ReloadDays();
         SelectedDay = Days.FirstOrDefault();
         collection = Store.LoadCollection();
         RebuildCollection();
         // Checks every 15 minutes, and when the window is activated. Cheap, and survives sleep through noon.
-        new DispatcherTimer(TimeSpan.FromMinutes(15), DispatcherPriority.Background, async (_, _) => await RefreshIfDue()).Start();
+        new DispatcherTimer(TimeSpan.FromMinutes(15), DispatcherPriority.Background, async (_, _) =>
+        {
+            await RefreshIfDue();
+            await Sync.Sync();
+        }).Start();
+        Dispatcher.UIThread.Post(async () => await Sync.Sync(), DispatcherPriority.Background);
     }
 
     // MARK: Daily refresh
@@ -259,6 +267,7 @@ public sealed class BriefModel : Observable
     {
         try { collection = Store.UpdateCollection(change); }
         catch (Exception e) { LastError = $"Could not save collection: {e.Message}"; return; }
+        Sync.SyncSoon();
         if (rebuild) CollectionChanged();
         else if (selected is { } row && collection.FirstOrDefault(s => s.Id == row.Id) is { } updated)
         {

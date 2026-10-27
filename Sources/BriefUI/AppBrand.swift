@@ -20,6 +20,16 @@ public enum AppBrand {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "AI-ML Refresher"
     }
 
+    /// The Google Cloud OAuth client ("Desktop app") for Sync with Google. Official builds only:
+    /// it belongs to the official app's Google project. Without it, sync isn't offered.
+    public static var googleClient: (id: String, secret: String)? {
+        #if canImport(PrivateBrand)
+        BrandKit.googleClient
+        #else
+        nil
+        #endif
+    }
+
     /// Loads brand resources (fonts). Call once at launch.
     public static func prepare() {
         #if canImport(PrivateBrand)

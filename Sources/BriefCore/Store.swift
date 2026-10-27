@@ -4,6 +4,7 @@ import Foundation
 ///
 ///     <dir>/briefs/2026-10-08.json   one ranked list per day (kept as history)
 ///     <dir>/collection.json          saved items with tags, notes and read state
+///     <dir>/deleted.json             when each removed item was removed, so removals sync
 ///
 /// `<dir>` is the shared App Group container when the app and widget are built with Xcode,
 /// so both read the same files. Without one (e.g. `swift run`) it falls back to Application Support.
@@ -37,15 +38,16 @@ public final class BriefStore: @unchecked Sendable {
 
     private var briefsDirectory: URL { directory.appendingPathComponent("briefs", isDirectory: true) }
     private var collectionURL: URL { directory.appendingPathComponent("collection.json") }
+    private var deletedURL: URL { directory.appendingPathComponent("deleted.json") }
 
-    private let encoder: JSONEncoder = {
+    let encoder: JSONEncoder = {
         let e = JSONEncoder()
         e.outputFormatting = [.prettyPrinted, .sortedKeys]
         e.dateEncodingStrategy = .iso8601
         return e
     }()
 
-    private let decoder: JSONDecoder = {
+    let decoder: JSONDecoder = {
         let d = JSONDecoder()
         d.dateDecodingStrategy = .iso8601
         return d
@@ -84,19 +86,55 @@ public final class BriefStore: @unchecked Sendable {
     }
 
     /// Read-modify-write so the app and the widget's "save" button don't overwrite each other.
+    /// Changed items get a new `updatedAt` and removed ones a deletion time, for syncing.
+    /// (The widget runs in its own process; the files are written atomically.)
     @discardableResult
-    public func updateCollection(_ mutate: (inout [SavedItem]) -> Void) throws -> [SavedItem] {
+    public func updateCollection(now: Date = SyncClock.now, _ mutate: (inout [SavedItem]) -> Void) throws -> [SavedItem] {
         try lock.withLock {
+            let before = Dictionary(readCollection().map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
             var items = readCollection()
             mutate(&items)
+            for i in items.indices where before[items[i].id] != items[i] {
+                items[i].updatedAt = now
+            }
+            var deleted = readDeleted()
+            let kept = Set(items.map(\.id))
+            let removed = before.keys.filter { !kept.contains($0) }
+            if !removed.isEmpty || kept.contains(where: { deleted[$0] != nil }) {
+                for id in removed { deleted[id] = now }
+                for id in kept { deleted[id] = nil }
+                try encoder.encode(deleted).write(to: deletedURL, options: .atomic)
+            }
             try encoder.encode(items).write(to: collectionURL, options: .atomic)
             return items
+        }
+    }
+
+    /// Removed item IDs and when they were removed.
+    public func loadDeleted() -> [String: Date] {
+        lock.withLock { readDeleted() }
+    }
+
+    /// Applies a sync: merges `remote` into the collection under the lock, without re-stamping, and
+    /// returns the merged state. Local changes made meanwhile are part of the merge, not lost.
+    @discardableResult
+    public func mergeCollection(_ remote: SyncSnapshot) throws -> SyncSnapshot {
+        try lock.withLock {
+            let merged = CollectionSync.merge(SyncSnapshot(items: readCollection(), deleted: readDeleted()), remote)
+            try encoder.encode(merged.deleted).write(to: deletedURL, options: .atomic)
+            try encoder.encode(merged.items).write(to: collectionURL, options: .atomic)
+            return merged
         }
     }
 
     private func readCollection() -> [SavedItem] {
         guard let data = try? Data(contentsOf: collectionURL) else { return [] }
         return (try? decoder.decode([SavedItem].self, from: data)) ?? []
+    }
+
+    private func readDeleted() -> [String: Date] {
+        guard let data = try? Data(contentsOf: deletedURL) else { return [:] }
+        return (try? decoder.decode([String: Date].self, from: data)) ?? [:]
     }
 }
 

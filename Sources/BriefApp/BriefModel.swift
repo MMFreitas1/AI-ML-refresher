@@ -10,6 +10,7 @@ import WidgetKit
 final class BriefModel {
     let store = BriefStore()
     let notifier = Notifier()
+    let sync: GoogleSync
 
     private(set) var days: [String] = []
     var selectedDay: String? { didSet { loadSelectedBrief() } }
@@ -27,9 +28,16 @@ final class BriefModel {
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
 
     init() {
+        sync = GoogleSync(store: store)
         reloadDays()
         selectedDay = days.first
         collection = store.loadCollection()
+        sync.onCollectionChanged = { [weak self] in
+            self?.collection = self?.store.loadCollection() ?? []
+            #if canImport(WidgetKit)
+            WidgetCenter.shared.reloadAllTimelines()
+            #endif
+        }
         startScheduling()
     }
 
@@ -38,7 +46,10 @@ final class BriefModel {
     /// Checks every 15 minutes, on wake and on activation. Cheap, and survives sleep through noon.
     private func startScheduling() {
         timer = Timer.scheduledTimer(withTimeInterval: 15 * 60, repeats: true) { [weak self] _ in
-            Task { @MainActor in await self?.refreshIfDue() }
+            Task { @MainActor in
+                await self?.refreshIfDue()
+                await self?.sync.sync()
+            }
         }
         let center = NSWorkspace.shared.notificationCenter
         observers.append(center.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
@@ -50,9 +61,13 @@ final class BriefModel {
                 self?.collection = self?.store.loadCollection() ?? []
                 await self?.notifier.refreshState()
                 await self?.refreshIfDue()
+                await self?.sync.sync()
             }
         })
-        Task { await refreshIfDue() }
+        Task {
+            await refreshIfDue()
+            await sync.sync()
+        }
     }
 
     func refreshIfDue() async {
@@ -117,6 +132,7 @@ final class BriefModel {
     private func mutate(reloadWidget: Bool = true, _ change: @escaping (inout [SavedItem]) -> Void) {
         do {
             collection = try store.updateCollection(change)
+            sync.syncSoon()
             #if canImport(WidgetKit)
             if reloadWidget { WidgetCenter.shared.reloadAllTimelines() }
             #endif

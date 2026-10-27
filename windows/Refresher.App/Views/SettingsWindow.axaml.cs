@@ -24,6 +24,7 @@ public partial class SettingsWindow : Window
         StartHelp.Text = $"Runs {AppBrand.DisplayName} in the notification area, where it builds the brief after 12:00 "
                          + "and lists the top 5, even with this window closed.";
         AppearanceSection.IsVisible = AppBrand.HasIntro;
+        SyncSection.IsVisible = model.Sync.IsAvailable;
         PlayIntro.IsChecked = model.Settings.PlayIntro;
         ScheduleText.Text = $"Daily after {Schedule.RefreshHour}:00 local time";
         NextText.Text = Schedule.NextRefresh(DateTimeOffset.Now).ToLocalTime().ToString("g");
@@ -51,4 +52,8 @@ public partial class SettingsWindow : Window
     void OnToggleNotifications(object? sender, RoutedEventArgs e) => model.Notifier.Toggle();
     void OnTestNotification(object? sender, RoutedEventArgs e) => model.Notifier.SendTest();
     void OnOpenFolder(object? sender, RoutedEventArgs e) => Shell.Open(model.Store.Directory);
+    async void OnSignIn(object? sender, RoutedEventArgs e) => await model.Sync.SignIn();
+    void OnCancelSignIn(object? sender, RoutedEventArgs e) => model.Sync.CancelSignIn();
+    async void OnSyncNow(object? sender, RoutedEventArgs e) => await model.Sync.Sync();
+    void OnSignOut(object? sender, RoutedEventArgs e) => model.Sync.SignOut();
 }

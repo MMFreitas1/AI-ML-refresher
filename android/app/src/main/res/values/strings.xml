@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_name">Today\'s top 5</string>
+    <string name="widget_description">The top 5 items of today\'s AI &amp; ML brief</string>
+    <string name="channel_name">Daily brief</string>
+    <string name="channel_description">When the day\'s brief is ready, after 12:00</string>
+</resources>

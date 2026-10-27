@@ -40,6 +40,7 @@ public partial class MainWindow : Window
             model.ReloadCollection();
             model.Notifier.RefreshState();
             await model.RefreshIfDue();
+            await model.Sync.Sync();
         };
     }
 

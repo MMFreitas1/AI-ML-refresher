@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Google Drive sync needs this app registered in a Google Cloud project (package name and
+         signing key). Official builds turn it on; see README, "Sync". -->
+    <bool name="sync_available">false</bool>
+</resources>
