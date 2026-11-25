@@ -13,6 +13,12 @@ Every day after **12:00 local time** it collects what's popular or trending acro
 
 No AI summaries and no API keys. The same inputs always produce the same list.
 
+## Demo
+
+[![Demo of the macOS app: browsing past days, saving an item to the collection, marking it read and opening it](docs/demo.gif)](docs/demo.mp4)
+
+▶ **[Play the full video](docs/demo.mp4)** (1 minute). The preview above runs at 2× speed.
+
 ## Install
 
 ### macOS
